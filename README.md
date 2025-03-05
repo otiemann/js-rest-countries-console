@@ -27,7 +27,7 @@ Eine interaktive simulierte Konsolenanwendung im Browser mit Eingabemöglichkeit
 
 ### 2. Reine Konsolenausgabe (`console_only.html`)
 
-Eine sehr einfache Version, die Informationen zu fünf vordefinierten Ländern direkt in der Browser-Konsole (F12) ausgibt.
+Eine sehr einfache Version, die Informationen zu Deutschland direkt in der Browser-Konsole (F12) ausgibt.
 
 ## Verwendung der Browser-Konsole
 
@@ -54,12 +54,13 @@ Eine sehr einfache Version, die Informationen zu fünf vordefinierten Ländern d
 
 1. Öffne die `console_only.html` Datei in einem beliebigen Webbrowser
 2. Öffne die Browser-Konsole (F12 oder Rechtsklick → "Untersuchen" → "Konsole")
-3. Die Informationen zu folgenden Ländern werden automatisch angezeigt:
-   - Deutschland
-   - Frankreich
-   - Spanien
-   - Italien
-   - Vereinigte Staaten
+3. Die Anwendung zeigt automatisch Informationen zu Deutschland an, wie:
+   - Name und Flagge
+   - Hauptstadt
+   - Bevölkerung
+   - Fläche
+   - Währung
+   - Sprache
 
 ## Technische Details
 

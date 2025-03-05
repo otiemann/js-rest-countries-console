@@ -12,95 +12,46 @@
     <p>Öffne die Browser-Konsole (F12 oder Rechtsklick → "Untersuchen" → "Konsole"), um das Programm zu sehen.</p>
 
     <script>
-        // API-Basis-URL
-        const API_BASE_URL = 'https://restcountries.com/v3.1';
+        // Einfaches Programm, das Daten zu Deutschland von der REST-Countries API abruft
 
-        // Willkommensnachricht
-        function printWelcomeMessage() {
-            console.log('=== REST-Countries-API Konsolenprogramm ===');
-            console.log('Dieses Programm zeigt Informationen über Länder an.');
+        // Beim Laden der Seite ausführen
+        window.addEventListener('load', function() {
+            // Willkommensnachricht
+            console.log('=== REST-Countries-API Beispiel ===');
+            console.log('Dieses Programm zeigt Informationen über Deutschland an.');
             console.log('');
-            console.log('Informationen zu folgenden Ländern werden angezeigt:');
-            console.log('- Deutschland');
-            console.log('- Frankreich');
-            console.log('- Spanien');
-            console.log('- Italien');
-            console.log('- Vereinigte Staaten');
-            console.log('');
-        }
 
-        // Land suchen und Informationen anzeigen
-        async function fetchAndDisplayCountryInfo(countryName) {
-            console.log(`Suche nach Informationen über "${countryName}"...`);
+            // API-Aufruf für Deutschland
+            console.log('Suche nach Informationen über "Deutschland"...');
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/name/${countryName}`);
-
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        console.error(`Das Land "${countryName}" wurde nicht gefunden.`);
-                        return;
+            // REST-Countries API aufrufen
+            fetch('https://restcountries.com/v3.1/name/Deutschland')
+                .then(response => {
+                    // Überprüfen, ob die Anfrage erfolgreich war
+                    if (!response.ok) {
+                        throw new Error('Land nicht gefunden oder API-Fehler');
                     }
-                    console.error(`API-Fehler: ${response.status}`);
-                    return;
-                }
+                    return response.json();
+                })
+                .then(data => {
+                    // Wir nehmen das erste Ergebnis
+                    const land = data[0];
 
-                const countries = await response.json();
-                const country = countries[0]; // Nehme das erste Ergebnis
-
-                console.log('\n=== LÄNDERINFORMATIONEN ===');
-                console.log(`Name: ${country.name.common} ${country.flag}`);
-                console.log(`Offizieller Name: ${country.name.official}`);
-                console.log(`Hauptstadt: ${country.capital ? country.capital.join(', ') : 'Keine Hauptstadt angegeben'}`);
-                console.log(`Region: ${country.region} ${country.subregion ? `(${country.subregion})` : ''}`);
-                console.log(`Bevölkerung: ${country.population.toLocaleString('de-DE')} Einwohner`);
-                console.log(`Fläche: ${country.area ? country.area.toLocaleString('de-DE') + ' km²' : 'Nicht angegeben'}`);
-                
-                // Währungen anzeigen
-                let currencyText = 'Keine Angabe';
-                if (country.currencies) {
-                    currencyText = Object.values(country.currencies)
-                        .map(currency => `${currency.name} (${currency.symbol || 'kein Symbol'})`)
-                        .join(', ');
-                }
-                console.log(`Währungen: ${currencyText}`);
-                
-                // Sprachen anzeigen
-                let languageText = 'Keine Angabe';
-                if (country.languages) {
-                    languageText = Object.values(country.languages).join(', ');
-                }
-                console.log(`Sprachen: ${languageText}`);
-                
-                console.log('===========================\n');
-            } catch (error) {
-                console.error(`Fehler: ${error.message}`);
-            }
-        }
-        
-        // Hauptfunktion
-        async function main() {
-            printWelcomeMessage();
-            
-            // Liste von Beispielländern
-            const countries = [
-                'Deutschland', 
-                'Frankreich', 
-                'Spanien', 
-                'Italien', 
-                'Vereinigte Staaten'
-            ];
-            
-            // Alle Länder nacheinander anzeigen
-            for (const country of countries) {
-                await fetchAndDisplayCountryInfo(country);
-            }
-            
-            console.log('Programm beendet.');
-        }
-        
-        // Starte das Programm
-        main();
+                    // Daten in der Konsole ausgeben
+                    console.log('\n=== LÄNDERDATEN ===');
+                    console.log(`Name: ${land.name.common} ${land.flag}`);
+                    console.log(`Hauptstadt: ${land.capital[0]}`);
+                    console.log(`Bevölkerung: ${land.population.toLocaleString('de-DE')} Einwohner`);
+                    console.log(`Fläche: ${land.area.toLocaleString('de-DE')} km²`);
+                    console.log(`Währung: ${Object.values(land.currencies)[0].name}`);
+                    console.log(`Sprache: ${Object.values(land.languages)[0]}`);
+                    console.log('===================');
+                })
+                .catch(error => {
+                    // Fehlerbehandlung
+                    console.error('Fehler beim Abrufen der Daten:', error);
+                });
+        });
     </script>
 </body>
 
