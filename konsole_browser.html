@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REST-Countries Konsole</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #1e1e1e;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        #console {
+            background-color: #2d2d2d;
+            border-radius: 5px;
+            height: 400px;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+        
+        #input-line {
+            display: flex;
+        }
+        
+        #prompt {
+            color: #4CAF50;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        
+        #command-input {
+            flex-grow: 1;
+            background-color: transparent;
+            border: none;
+            color: #f0f0f0;
+            font-family: monospace;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .output {
+            margin: 5px 0;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+        
+        .highlight {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .country-item {
+            cursor: pointer;
+            padding: 2px 0;
+        }
+        
+        .country-item:hover {
+            background-color: #3d3d3d;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="console"></div>
+    <div id="input-line">
+        <span id="prompt">&gt;</span>
+        <input type="text" id="command-input" autofocus placeholder="Gib den Namen eines Landes ein (oder 'help' für Hilfe)">
+    </div>
+
+    <script>
+        // DOM-Elemente
+        const consoleOutput = document.getElementById('console');
+        const commandInput = document.getElementById('command-input');
+
+        // API-Basis-URL
+        const API_BASE_URL = 'https://restcountries.com/v3.1';
+
+        // Zustandsvariablen
+        let waitingForSelection = false;
+        let currentCountries = [];
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        // Initialisierung
+        function init() {
+            printWelcomeMessage();
+            commandInput.addEventListener('keydown', handleInputKeyDown);
+        }
+
+        // Willkommensnachricht anzeigen
+        function printWelcomeMessage() {
+            print('=== REST-Countries-API Konsolenprogramm ===');
+            print('Dieses Programm zeigt Informationen über Länder an.');
+            print('');
+            print('Befehle:');
+            print('- Ländername eingeben, um Informationen zu erhalten');
+            print('- help - Zeigt diese Hilfe an');
+            print('- clear - Löscht die Konsole');
+            print('- exit - Beendet das Programm (lädt die Seite neu)');
+            print('');
+        }
+
+        // Behandelt Tastatureingaben
+        function handleInputKeyDown(event) {
+            if (event.key === 'Enter') {
+                const command = commandInput.value.trim();
+                executeCommand(command);
+                commandInput.value = '';
+
+                // Zum Befehlsverlauf hinzufügen
+                if (command) {
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length;
+                }
+            } else if (event.key === 'ArrowUp') {
+                // Vorheriger Befehl im Verlauf
+                event.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    commandInput.value = commandHistory[historyIndex];
+                }
+            } else if (event.key === 'ArrowDown') {
+                // Nächster Befehl im Verlauf
+                event.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    commandInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    commandInput.value = '';
+                }
+            }
+        }
+
+        // Führt einen Befehl aus
+        async function executeCommand(command) {
+            print(`> ${command}`, 'command');
+
+            if (waitingForSelection && !isNaN(command)) {
+                // Verarbeite Auswahl aus der Liste
+                const selection = parseInt(command);
+                if (selection >= 1 && selection <= currentCountries.length) {
+                    displayCountryInfo(currentCountries[selection - 1]);
+                } else {
+                    printError(`Bitte gib eine Zahl zwischen 1 und ${currentCountries.length} ein.`);
+                }
+                waitingForSelection = false;
+                return;
+            }
+
+            // Spezielle Befehle
+            if (command.toLowerCase() === 'help') {
+                printWelcomeMessage();
+            } else if (command.toLowerCase() === 'clear') {
+                clearConsole();
+            } else if (command.toLowerCase() === 'exit') {
+                print('Auf Wiedersehen!');
+                setTimeout(() => window.location.reload(), 1000);
+            } else if (command.trim() !== '') {
+                // Land suchen
+                await searchCountry(command);
+            }
+        }
+
+        // Länderinformationen suchen
+        async function searchCountry(countryName) {
+            print(`Suche nach Informationen über "${countryName}"...`);
+
+            try {
+                const countries = await getCountryByName(countryName);
+
+                if (countries.length > 1) {
+                    print(`Es wurden ${countries.length} Länder gefunden, die zu deiner Suche passen:`);
+                    currentCountries = countries;
+
+                    countries.forEach((country, index) => {
+                        const listItem = document.createElement('div');
+                        listItem.className = 'country-item';
+                        listItem.textContent = `${index + 1}. ${country.name.common}`;
+                        listItem.addEventListener('click', () => {
+                            commandInput.value = String(index + 1);
+                            executeCommand(String(index + 1));
+                        });
+                        consoleOutput.appendChild(listItem);
+                        scrollToBottom();
+                    });
+
+                    print(`Wähle eine Nummer (1-${countries.length}):`);
+                    waitingForSelection = true;
+                } else {
+                    displayCountryInfo(countries[0]);
+                }
+            } catch (error) {
+                printError(`Fehler: ${error.message}`);
+            }
+        }
+
+        // Informationen über ein Land abrufen
+        async function getCountryByName(countryName) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/name/${countryName}`);
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(`Das Land "${countryName}" wurde nicht gefunden.`);
+                    }
+                    throw new Error(`API-Fehler: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Länderdaten anzeigen
+        function displayCountryInfo(country) {
+            print('\n=== LÄNDERINFORMATIONEN ===', 'highlight');
+            print(`Name: ${country.name.common} ${country.flag}`);
+            print(`Offizieller Name: ${country.name.official}`);
+            print(`Hauptstadt: ${country.capital ? country.capital.join(', ') : 'Keine Hauptstadt angegeben'}`);
+            print(`Region: ${country.region} ${country.subregion ? `(${country.subregion})` : ''}`);
+            print(`Bevölkerung: ${country.population.toLocaleString('de-DE')} Einwohner`);
+            print(`Fläche: ${country.area ? country.area.toLocaleString('de-DE') + ' km²' : 'Nicht angegeben'}`);
+            print(`Währungen: ${formatCurrencies(country.currencies)}`);
+            print(`Sprachen: ${formatLanguages(country.languages)}`);
+            print('===========================\n');
+        }
+        
+        // Währungsinformationen formatieren
+        function formatCurrencies(currencies) {
+            if (!currencies) return 'Keine Angabe';
+            
+            return Object.values(currencies)
+                .map(currency => `${currency.name} (${currency.symbol || 'kein Symbol'})`)
+                .join(', ');
+        }
+        
+        // Sprachinformationen formatieren
+        function formatLanguages(languages) {
+            if (!languages) return 'Keine Angabe';
+            
+            return Object.values(languages).join(', ');
+        }
+        
+        // Text zur Konsole hinzufügen
+        function print(text, className = '') {
+            const line = document.createElement('div');
+            line.className = `output ${className}`;
+            line.textContent = text;
+            consoleOutput.appendChild(line);
+            scrollToBottom();
+        }
+        
+        // Fehlermeldung anzeigen
+        function printError(text) {
+            print(text, 'error');
+        }
+        
+        // Konsole leeren
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+        }
+        
+        // Zum Ende der Konsole scrollen
+        function scrollToBottom() {
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        // Initialisierung beim Laden der Seite
+        window.addEventListener('load', init);
+    </script>
+</body>
+
+</html>
